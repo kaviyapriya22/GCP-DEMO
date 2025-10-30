@@ -1,24 +1,20 @@
-# Use OpenJDK 17 as the base image
-FROM openjdk:17-jdk-slim
+# Stage 1: Build the application -  multi stage docker for lean build
+FROM gradle:8.4-jdk17 AS builder
 
-# Set working directory inside container
-WORKDIR /app
+# Copy project files to container
+COPY . /app
 
-# Copy Gradle wrapper and build files
-COPY build.gradle .
-COPY settings.gradle .
-COPY gradlew .
-COPY gradlew.bat .
-COPY gradle ./gradle
+# Run Gradle build - no test done to minimise build time
+RUN cd /app && gradle clean build -x test
 
-# Copy the rest of the source code
-COPY . .
+# Stage 2: Run the application - trusted eclipse temurin image for slimmer faster and secure image
+FROM eclipse-temurin:21-jdk-jammy
 
-# Build the application
-RUN ./gradlew build -x test
+# Copy the JAR from the builder stage
+COPY --from=builder /app/build/libs/demo-0.0.1-SNAPSHOT.jar /app/app.jar
 
-# Expose port 8080 for Cloud Run
+# Expose application port (optional, e.g., 8080)
 EXPOSE 8080
 
-# Run the JAR file
-CMD ["java", "-jar", "build/libs/*.jar"]
+# Run the JAR
+ENTRYPOINT ["java", "-jar", "/app/app.jar"]
