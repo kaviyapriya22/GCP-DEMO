@@ -10,6 +10,6 @@ public class DemoController {
 
     @GetMapping
     public String getMessage() {
-        return "Application is running...";
+        return "Updated Application is running...";
     }
 }
